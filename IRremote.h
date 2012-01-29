@@ -12,8 +12,6 @@
  * For details, see http://blog.tkjelectronics.dk
  */
 
-#include <inttypes.h>
-
 #ifndef IRremote_h
 #define IRremote_h
 
