@@ -72,7 +72,7 @@ void JVCCommand(unsigned int data)
     irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat   
 }
 
-boolean MATCH(int measured, int desired) // True if the condition are not met
+boolean MATCH(int measured, int desired) // True if the condition are met
 {
   measured *= RESOLUTION;
   return(!(measured < desired-(desired*TOLERANCE/100) || measured > desired+(desired*TOLERANCE/100)));
