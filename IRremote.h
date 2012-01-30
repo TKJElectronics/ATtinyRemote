@@ -21,7 +21,7 @@
 #include "WProgram.h"
 #endif
 
-#define IRLED PB1 //(Used as OC0B)
+#define IRLED PB1 //(Used as OC0B) - pin 6 on ATtiny85
 
 /* Uncomment this if it's not defined in the makefile or not using the Arduino IDE
 #ifndef F_CPU

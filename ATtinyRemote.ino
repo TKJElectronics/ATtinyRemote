@@ -8,8 +8,9 @@
 //The panasonic protocol actually is 48-bits long, but we only use the bottom 32
 #define PanasonicPower        0x1000E0F  // Red button
 #define PanasonicMute         0x1008E8F  // Green button
-#define PanasonicVolumeUp     0x100CECF  // Blue button
 #define PanasonicVolumeDown   0x1004E4F  // Yellow
+#define PanasonicVolumeUp     0x100CECF  // Blue button
+#define ATtinyPower           0x190CB5A  // Second power button
 
 #define IRrecv PB2 // pin 7 on ATtiny85
 
@@ -27,42 +28,59 @@ IRsend irsend;
 #define commandLength 50
 uint16_t pulses[commandLength][2];  // pair is high and low pulse
 
-#define RED PB0
+#define RED PB0 // pin 5 on ATtiny85
+
+boolean deactivated;
 
 void setup(void) 
 {
-  irsend.enableIROut(38);
+  irsend.enableIROut(38); // Enable phase-correct PWM with a frequency of 38kHz
   DDRB |= _BV(RED); // Set as output
   DDRB &= ~(_BV(IRrecv)); // Set as input
 
   PORTB |= _BV(RED); // Turn LED on
-  delay(1000);
+  delay(100);
   PORTB &= ~(_BV(RED)); // Turn LED off
-  JVCCommand(JVCPower); // Turn stereo on at startup
 }
 
 void loop(void) {
   if(listenForIR())
   {
-    switch(decodeIR())
-    {      
-    case PanasonicVolumeUp:   
-      JVCCommand(JVCVolumeUp);        
-      break;
-    case PanasonicVolumeDown:    
-      JVCCommand(JVCVolumeDown);  
-      break;
-    case PanasonicMute:
-      JVCCommand(JVCMute);
-      break;
-    case PanasonicPower:
-      JVCCommand(JVCPower);
-      break;
-    default:
-      break;     
+    if(deactivated)
+    {
+      if(decodeIR() == ATtinyPower)
+      {
+        deactivated = false;
+        PORTB &= ~(_BV(RED)); // Turn LED off
+        delay(250); // delay insures that it's just don't toggle "deactivate" very fast
+      }
+    }
+    else
+    {
+      switch(decodeIR())
+      {      
+      case PanasonicVolumeUp:   
+        JVCCommand(JVCVolumeUp);        
+        break;
+      case PanasonicVolumeDown:    
+        JVCCommand(JVCVolumeDown);  
+        break;
+      case PanasonicMute:
+        JVCCommand(JVCMute);
+        break;
+      case PanasonicPower:
+        JVCCommand(JVCPower);
+        break;
+      case ATtinyPower: // This will disable the ATtinyRemote until the button is pressed again
+        deactivated = true;
+        PORTB |= _BV(RED); // Turn LED on
+        delay(250); // delay insures that it's just don't toggle "deactivate" very fast
+        break;
+      default:
+        break;     
+      }
     }
   }
-  PORTB ^= _BV(RED);
 }
 
 void JVCCommand(unsigned int data)
@@ -89,7 +107,7 @@ unsigned long decodeIR(void) {
   {
     if(!MATCH(pulses[i+1][1],PANASONIC_BIT_MARK))
       return false;
-      
+
     if(MATCH(pulses[i+2][0],PANASONIC_ONE_SPACE))
       data = (data << 1) | 1;
     else if (MATCH(pulses[i+2][0],PANASONIC_ZERO_SPACE))
@@ -136,4 +154,6 @@ boolean listenForIR(void) {
       return true;
   }
 }
+
+
 
