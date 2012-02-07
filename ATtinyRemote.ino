@@ -5,8 +5,10 @@
 #define JVCVolumeUp           0xC578
 #define JVCVolumeDown         0xC5F8
 
-//The panasonic protocol actually is 48-bits long, but we only use the bottom 32
-#define PanasonicPower        0x1000E0F  // Red button
+//The panasonic protocol is 48-bits long, all the commands has the same address (or pre data) and then followed by a 32 bit code
+#define PanasonicAddress      0x4004     // Panasonic address (Pre data)
+#define PanasonicPower        0x100BCBD  // Panasonic Power button
+#define PanasonicPower2       0x1000E0F  // Red button - alternative power button
 #define PanasonicMute         0x1008E8F  // Green button
 #define PanasonicVolumeDown   0x1004E4F  // Yellow
 #define PanasonicVolumeUp     0x100CECF  // Blue button
@@ -16,13 +18,14 @@
 
 IRsend irsend;
 
+// The amount of time between each measurement in microseconds
 #define RESOLUTION 10
 
 // the maximum pulse we'll listen for - maximum pulse is 3502us, so 5000us should be way over the top
 #define MAXPULSE (5000/RESOLUTION)
 
-// What percent we will allow in variation to match the same code
-#define TOLERANCE 25 // 25% tolerance
+// What percent we will allow in variation to match the same code - this large tolerance will ensure that the data is decoded correct even at a far distance
+#define TOLERANCE 40 // 40 % tolerance
 
 // we will store up to 50 pulse pairs  - the Panasonic protocol is 48 bits long or 96 pairs excluding header (2 pairs)
 #define commandLength 50
@@ -30,6 +33,8 @@ uint16_t pulses[commandLength][2];  // pair is high and low pulse
 
 #define RED PB0 // pin 5 on ATtiny85
 
+uint16_t IRaddress;
+uint32_t IRdata;
 boolean deactivated;
 
 void setup(void) 
@@ -40,63 +45,72 @@ void setup(void)
 
   PORTB |= _BV(RED); // Turn LED on
   delay(100);
-  PORTB &= ~(_BV(RED)); // Turn LED off
+  PORTB &= ~(_BV(RED)); // Turn LED off 
 }
 
 void loop(void) {
   if(listenForIR())
   {
-    if(deactivated)
+    if(decodeIR() && IRaddress == PanasonicAddress)
     {
-      if(decodeIR() == ATtinyPower)
+      if(deactivated)
       {
-        deactivated = false;
-        PORTB &= ~(_BV(RED)); // Turn LED off
-        delay(250); // delay insures that it's just don't toggle "deactivate" very fast
+        if(IRdata == ATtinyPower)
+        {
+          deactivated = false;
+          PORTB &= ~(_BV(RED)); // Turn LED off
+          delay(250); // delay insures that it's just don't toggle "deactivate" very fast
+        }
       }
-    }
-    else
-    {
-      switch(decodeIR())
-      {      
-      case PanasonicVolumeUp:   
-        JVCCommand(JVCVolumeUp);        
-        break;
-      case PanasonicVolumeDown:    
-        JVCCommand(JVCVolumeDown);  
-        break;
-      case PanasonicMute:
-        JVCCommand(JVCMute);
-        break;
-      case PanasonicPower:
-        JVCCommand(JVCPower);
-        break;
-      case ATtinyPower: // This will disable the ATtinyRemote until the button is pressed again
-        deactivated = true;
-        PORTB |= _BV(RED); // Turn LED on
-        delay(250); // delay insures that it's just don't toggle "deactivate" very fast
-        break;
-      default:
-        break;     
+      else
+      {
+        switch(IRdata)
+        {      
+        case PanasonicVolumeUp:   
+          JVCCommand(JVCVolumeUp);        
+          break;
+        case PanasonicVolumeDown:    
+          JVCCommand(JVCVolumeDown);  
+          break;
+        case PanasonicMute:
+          JVCCommand(JVCMute);
+          break;
+        case PanasonicPower:
+          JVCCommand(JVCPower);
+          delay(3000); // On Panasonic TVs one have to hold the power button to turn the TV on, this delay keeps the ATtinyRemote from toggling the JVC stereo on and off
+          break;
+        case PanasonicPower2:
+          JVCCommand(JVCPower);
+          break;
+        case ATtinyPower: // This will disable the ATtinyRemote until the button is pressed again
+          deactivated = true;
+          PORTB |= _BV(RED); // Turn LED on
+          delay(250); // delay insures that it's just don't toggle "deactivate" very fast
+          break;
+        default:
+          break;     
+        }
       }
     }
   }
 }
-
-void JVCCommand(unsigned int data)
+void JVCCommand(uint16_t data)
 {
-  irsend.sendJVC(data, 16,0); // hex value, 16 bits, not repeat
-  for(byte i = 0; i < 10;i++)
-    irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat   
+  irsend.sendJVC(data, 16,0); // hex value, 16 bits, no repeat
+  for(uint8_t i = 0; i < 5; i++)
+  {
+    delayMicroseconds(50); // see http://www.sbprojects.com/knowledge/ir/jvc.php for information
+    irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat
+  }
 }
 
-boolean MATCH(int measured, int desired) // True if the condition are met
+boolean MATCH(uint16_t measured, uint16_t desired) // True if the condition are met
 {
   measured *= RESOLUTION;
-  return(!(measured < desired-(desired*TOLERANCE/100) || measured > desired+(desired*TOLERANCE/100)));
+  return (measured >= desired-((float)desired*TOLERANCE/100) && measured <= desired+((float)desired*TOLERANCE/100));  
 }
 
-unsigned long decodeIR(void) {  
+boolean decodeIR(void) {  
   unsigned long long data = 0;
 
   if(!MATCH(pulses[0][1],PANASONIC_HDR_MARK))
@@ -106,16 +120,20 @@ unsigned long decodeIR(void) {
   for (int i=0; i < PANASONIC_BITS; i++) 
   {
     if(!MATCH(pulses[i+1][1],PANASONIC_BIT_MARK))
-      return false;
-
+    {
+      if(!MATCH(pulses[i+1][1],PANASONIC_BIT_MARK-252)) // Small hack to make it work at a far distance
+        return false;
+    }
     if(MATCH(pulses[i+2][0],PANASONIC_ONE_SPACE))
       data = (data << 1) | 1;
     else if (MATCH(pulses[i+2][0],PANASONIC_ZERO_SPACE))
       data <<= 1;
     else // It's neither 0 or 1, so something went wrong
-    return false;
+      return false;
   }
-  return (unsigned long)data;
+  IRaddress = (uint16_t)(data >> 32);
+  IRdata = (uint32_t)data;
+  return true;
 }
 
 boolean listenForIR(void) {
@@ -154,6 +172,4 @@ boolean listenForIR(void) {
       return true;
   }
 }
-
-
 

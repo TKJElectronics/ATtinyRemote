@@ -14,7 +14,7 @@
 
 #include "IRremote.h"
 
-void IRsend::sendJVC(unsigned long data, int nbits, int repeat)
+void IRsend::sendJVC(uint32_t data, int16_t nbits, int16_t repeat)
 {
     //enableIROut(38);
     data = data << (32 - nbits);
@@ -37,32 +37,32 @@ void IRsend::sendJVC(unsigned long data, int nbits, int repeat)
     space(0); //Turn IR LED off    
 }
 
-void IRsend::mark(int time) {
+void IRsend::mark(int16_t time) {
     // Sends an IR mark for the specified number of microseconds.
     // The mark output is modulated at the PWM frequency.
     
     // Clear OC0A/OC0B on Compare Match when up-counting.
-    // Set OC0A/OC0B on Compare Match when down-counting     
+    // Set OC0A/OC0B on Compare Match when down-counting.    
     TCCR0A |= _BV(COM0B1); // Enable pin 6 (PB1) PWM output        
     delayMicroseconds(time);    
 }
 
 /* Leave pin off for time (given in microseconds) */
-void IRsend::space(int time) {
+void IRsend::space(int16_t time) {
     // Sends an IR space for the specified number of microseconds.
     // A space is no output, so the PWM output is disabled.
     
-    // Normal port operation, OC0A/OC0B disconnected
+    // Normal port operation, OC0A/OC0B disconnected.
     TCCR0A &= ~(_BV(COM0B1)); // Disable pin 6 (PB1) PWM output
     delayMicroseconds(time);    
 }
 
-void IRsend::enableIROut(int khz) {
+void IRsend::enableIROut(int16_t khz) {
   // Enables IR output.  The khz value controls the modulation frequency in kilohertz.
-  // The IR output will be on pin 3 (OC2B).
+  // The IR output will be on pin 6 (OC0B).
   // This routine is designed for 36-40KHz; if you use it for other values, it's up to you
   // to make sure it gives reasonable results.  (Watch out for overflow / underflow / rounding.)
-  // TIMER2 is used in phase-correct PWM mode, with OCR2A controlling the frequency and OCR2B
+  // TIMER0 is used in phase-correct PWM mode, with OCR0A controlling the frequency and OCR0B
   // controlling the duty cycle.
   // There is no prescaling, so the output frequency is 16MHz / (2 * OCR2A)
   // To turn the output on and off, we leave the PWM running, but connect and disconnect the output pin.

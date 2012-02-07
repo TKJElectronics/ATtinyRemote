@@ -10106,7 +10106,7 @@ Source: 008-0260-0_E.pdf</description>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="P+1" library="supply1" deviceset="+5V" device=""/>
-<part name="S1" library="SparkFun" deviceset="TAC_SWITCH" device="PTH" value="RESET"/>
+<part name="RESET" library="SparkFun" deviceset="TAC_SWITCH" device="PTH" value="RESET"/>
 <part name="R1" library="resistor" deviceset="R-EU_" device="0207/10" value="10k"/>
 <part name="P+2" library="supply1" deviceset="+5V" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
@@ -10118,7 +10118,7 @@ Source: 008-0260-0_E.pdf</description>
 <part name="X1" library="SparkFun" deviceset="USB" device="-A-H"/>
 <part name="P+4" library="supply1" deviceset="+5V" device=""/>
 <part name="GND6" library="supply1" deviceset="GND" device=""/>
-<part name="LED1" library="led" deviceset="LED" device="3MM"/>
+<part name="STATUS" library="led" deviceset="LED" device="3MM"/>
 <part name="GND7" library="supply1" deviceset="GND" device=""/>
 <part name="Q2" library="crystal" deviceset="CRYSTAL" device="HC49S" value="16MHz"/>
 <part name="GND2" library="supply1" deviceset="GND" device=""/>
@@ -10138,7 +10138,7 @@ Source: 008-0260-0_E.pdf</description>
 <instance part="GND1" gate="1" x="27.94" y="40.64"/>
 <instance part="GND3" gate="1" x="83.82" y="30.48"/>
 <instance part="P+1" gate="1" x="27.94" y="68.58"/>
-<instance part="S1" gate="S" x="63.5" y="35.56"/>
+<instance part="RESET" gate="S" x="63.5" y="35.56"/>
 <instance part="R1" gate="G$1" x="50.8" y="33.02" rot="R180"/>
 <instance part="P+2" gate="1" x="45.72" y="38.1"/>
 <instance part="GND4" gate="1" x="73.66" y="30.48"/>
@@ -10150,7 +10150,7 @@ Source: 008-0260-0_E.pdf</description>
 <instance part="X1" gate="G$1" x="2.54" y="60.96" rot="R180"/>
 <instance part="P+4" gate="1" x="10.16" y="68.58"/>
 <instance part="GND6" gate="1" x="10.16" y="45.72"/>
-<instance part="LED1" gate="G$1" x="58.42" y="78.74" rot="R180"/>
+<instance part="STATUS" gate="G$1" x="58.42" y="78.74" rot="R180"/>
 <instance part="GND7" gate="1" x="48.26" y="78.74"/>
 <instance part="Q2" gate="G$1" x="83.82" y="50.8" smashed="yes">
 <attribute name="NAME" x="86.36" y="46.736" size="1.778" layer="95"/>
@@ -10189,8 +10189,8 @@ Source: 008-0260-0_E.pdf</description>
 <junction x="83.82" y="33.02"/>
 </segment>
 <segment>
-<pinref part="S1" gate="S" pin="3"/>
-<pinref part="S1" gate="S" pin="4"/>
+<pinref part="RESET" gate="S" pin="3"/>
+<pinref part="RESET" gate="S" pin="4"/>
 <wire x1="68.58" y1="35.56" x2="68.58" y2="33.02" width="0.1524" layer="91"/>
 <pinref part="GND4" gate="1" pin="GND"/>
 <wire x1="68.58" y1="33.02" x2="73.66" y2="33.02" width="0.1524" layer="91"/>
@@ -10207,7 +10207,7 @@ Source: 008-0260-0_E.pdf</description>
 <wire x1="10.16" y1="58.42" x2="10.16" y2="48.26" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="LED1" gate="G$1" pin="C"/>
+<pinref part="STATUS" gate="G$1" pin="C"/>
 <wire x1="58.42" y1="83.82" x2="58.42" y2="86.36" width="0.1524" layer="91"/>
 <pinref part="GND7" gate="1" pin="GND"/>
 <wire x1="58.42" y1="86.36" x2="48.26" y2="86.36" width="0.1524" layer="91"/>
@@ -10263,10 +10263,10 @@ Source: 008-0260-0_E.pdf</description>
 </net>
 <net name="N$3" class="0">
 <segment>
-<pinref part="S1" gate="S" pin="1"/>
+<pinref part="RESET" gate="S" pin="1"/>
 <wire x1="55.88" y1="48.26" x2="58.42" y2="48.26" width="0.1524" layer="91"/>
 <wire x1="58.42" y1="48.26" x2="58.42" y2="35.56" width="0.1524" layer="91"/>
-<pinref part="S1" gate="S" pin="2"/>
+<pinref part="RESET" gate="S" pin="2"/>
 <wire x1="58.42" y1="35.56" x2="58.42" y2="33.02" width="0.1524" layer="91"/>
 <pinref part="R1" gate="G$1" pin="1"/>
 <wire x1="58.42" y1="33.02" x2="55.88" y2="33.02" width="0.1524" layer="91"/>
@@ -10295,11 +10295,11 @@ Source: 008-0260-0_E.pdf</description>
 <wire x1="78.74" y1="96.52" x2="78.74" y2="88.9" width="0.1524" layer="91"/>
 <pinref part="U1" gate="G$1" pin="SLEEVE"/>
 <pinref part="U1" gate="G$1" pin="RING"/>
-<wire x1="78.74" y1="99.06" x2="78.74" y2="96.52" width="0.1524" layer="91"/>
+<wire x1="78.74" y1="96.52" x2="78.74" y2="99.06" width="0.1524" layer="91"/>
 <pinref part="U1" gate="G$1" pin="RSH"/>
-<wire x1="78.74" y1="101.6" x2="78.74" y2="99.06" width="0.1524" layer="91"/>
-<junction x="78.74" y="99.06"/>
+<wire x1="78.74" y1="99.06" x2="78.74" y2="101.6" width="0.1524" layer="91"/>
 <junction x="78.74" y="96.52"/>
+<junction x="78.74" y="99.06"/>
 </segment>
 </net>
 <net name="N$10" class="0">
@@ -10325,7 +10325,7 @@ Source: 008-0260-0_E.pdf</description>
 <net name="N$9" class="0">
 <segment>
 <pinref part="R4" gate="G$1" pin="2"/>
-<pinref part="LED1" gate="G$1" pin="A"/>
+<pinref part="STATUS" gate="G$1" pin="A"/>
 <wire x1="58.42" y1="73.66" x2="58.42" y2="76.2" width="0.1524" layer="91"/>
 </segment>
 </net>
