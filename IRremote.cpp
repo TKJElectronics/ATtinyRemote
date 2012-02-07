@@ -64,7 +64,7 @@ void IRsend::enableIROut(int16_t khz) {
   // to make sure it gives reasonable results.  (Watch out for overflow / underflow / rounding.)
   // TIMER0 is used in phase-correct PWM mode, with OCR0A controlling the frequency and OCR0B
   // controlling the duty cycle.
-  // There is no prescaling, so the output frequency is 16MHz / (2 * OCR2A)
+  // There is no prescaling, so the output frequency is 16MHz / (2 * OCR0A)
   // To turn the output on and off, we leave the PWM running, but connect and disconnect the output pin.
   // A few hours staring at the ATmega documentation and this will all make sense.
   // See my Secrets of Arduino PWM at http://arcfn.com/2009/07/secrets-of-arduino-pwm.html for details.
