@@ -1,3 +1,12 @@
+/* 
+ * The code is released under the GNU General Public License.
+ * Developed by Kristian Lauszus
+ * This is a remote translator based on an ATtiny85. 
+ * It translates commands from a Panasonic remote to specific JVC commands. 
+ * This enables me to turn my JVC stereo on and off, mute it and turn the volume up or down, using my Panasonic remote for my TV.
+ * For details, see http://blog.tkjelectronics.dk
+ */
+
 #include "IRremote.h"
 
 #define JVCPower              0xC5E8
@@ -48,7 +57,7 @@ void setup(void)
   PORTB &= ~(_BV(RED)); // Turn LED off 
 }
 
-void loop(void) {
+void loop(void) {  
   if(listenForIR())
   {
     if(decodeIR() && IRaddress == PanasonicAddress)
@@ -94,6 +103,7 @@ void loop(void) {
     }
   }
 }
+
 void JVCCommand(uint16_t data)
 {
   irsend.sendJVC(data, 16,0); // hex value, 16 bits, no repeat
