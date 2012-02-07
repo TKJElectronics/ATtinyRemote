@@ -10127,6 +10127,8 @@ Source: 008-0260-0_E.pdf</description>
 <part name="U1" library="SparkFun" deviceset="AUDIO-JACK2" device="PTH" value="IR_Emitter"/>
 <part name="U2" library="SparkFun" deviceset="AUDIO-JACK2" device="PTH" value="IR_Receiver"/>
 <part name="IC1" library="ATtiny85" deviceset="ATTINY85" device="DIP8"/>
+<part name="C3" library="rcl" deviceset="C-EU" device="025-025X050" value="100nF"/>
+<part name="GND8" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -10137,7 +10139,7 @@ Source: 008-0260-0_E.pdf</description>
 <instance part="C2" gate="G$1" x="78.74" y="43.18"/>
 <instance part="GND1" gate="1" x="27.94" y="40.64"/>
 <instance part="GND3" gate="1" x="83.82" y="30.48"/>
-<instance part="P+1" gate="1" x="27.94" y="68.58"/>
+<instance part="P+1" gate="1" x="20.32" y="68.58"/>
 <instance part="RESET" gate="S" x="63.5" y="35.56"/>
 <instance part="R1" gate="G$1" x="50.8" y="33.02" rot="R180"/>
 <instance part="P+2" gate="1" x="45.72" y="38.1"/>
@@ -10168,6 +10170,8 @@ Source: 008-0260-0_E.pdf</description>
 <attribute name="VALUE" x="106.68" y="76.2" size="1.778" layer="96" rot="R180"/>
 </instance>
 <instance part="IC1" gate="G$1" x="43.18" y="53.34"/>
+<instance part="C3" gate="G$1" x="20.32" y="55.88"/>
+<instance part="GND8" gate="1" x="20.32" y="45.72"/>
 </instances>
 <busses>
 </busses>
@@ -10218,6 +10222,11 @@ Source: 008-0260-0_E.pdf</description>
 <pinref part="GND2" gate="1" pin="GND"/>
 <wire x1="88.9" y1="63.5" x2="88.9" y2="60.96" width="0.1524" layer="91"/>
 </segment>
+<segment>
+<pinref part="C3" gate="G$1" pin="2"/>
+<pinref part="GND8" gate="1" pin="GND"/>
+<wire x1="20.32" y1="48.26" x2="20.32" y2="50.8" width="0.1524" layer="91"/>
+</segment>
 </net>
 <net name="N$1" class="0">
 <segment>
@@ -10231,11 +10240,6 @@ Source: 008-0260-0_E.pdf</description>
 </segment>
 </net>
 <net name="+5V" class="0">
-<segment>
-<pinref part="P+1" gate="1" pin="+5V"/>
-<wire x1="27.94" y1="66.04" x2="27.94" y2="60.96" width="0.1524" layer="91"/>
-<pinref part="IC1" gate="G$1" pin="VCC"/>
-</segment>
 <segment>
 <pinref part="R1" gate="G$1" pin="2"/>
 <pinref part="P+2" gate="1" pin="+5V"/>
@@ -10259,6 +10263,15 @@ Source: 008-0260-0_E.pdf</description>
 <pinref part="U2" gate="G$1" pin="TSH"/>
 <wire x1="88.9" y1="73.66" x2="88.9" y2="71.12" width="0.1524" layer="91"/>
 <junction x="88.9" y="73.66"/>
+</segment>
+<segment>
+<pinref part="P+1" gate="1" pin="+5V"/>
+<pinref part="C3" gate="G$1" pin="1"/>
+<wire x1="20.32" y1="58.42" x2="20.32" y2="60.96" width="0.1524" layer="91"/>
+<pinref part="IC1" gate="G$1" pin="VCC"/>
+<wire x1="20.32" y1="60.96" x2="20.32" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="27.94" y1="60.96" x2="20.32" y2="60.96" width="0.1524" layer="91"/>
+<junction x="20.32" y="60.96"/>
 </segment>
 </net>
 <net name="N$3" class="0">
