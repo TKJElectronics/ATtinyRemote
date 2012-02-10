@@ -14,7 +14,7 @@
 
 #include "IRremote.h"
 
-void IRsend::sendJVC(uint32_t data, int16_t nbits, int16_t repeat)
+void IRsend::sendJVC(uint32_t data, uint8_t nbits, uint8_t repeat)
 {
     //enableIROut(38);
     data = data << (32 - nbits);
@@ -57,7 +57,7 @@ void IRsend::space(int16_t time) {
     delayMicroseconds(time);    
 }
 
-void IRsend::enableIROut(int16_t khz) {
+void IRsend::enableIROut(uint8_t khz) {
   // Enables IR output.  The khz value controls the modulation frequency in kilohertz.
   // The IR output will be on pin 6 (OC0B).
   // This routine is designed for 36-40KHz; if you use it for other values, it's up to you

@@ -48,8 +48,8 @@ class IRsend
 {
 public:
   IRsend() {}
-  void sendJVC(uint32_t data, int16_t nbits, int16_t repeat); // *Note instead of sending the REPEAT constant if you want the JVC repeat signal sent, send the original code value and change the repeat argument from 0 to 1. JVC protocol repeats by skipping the header NOT by sending a separate code value like NEC does.
-  void enableIROut(int16_t khz);
+  void sendJVC(uint32_t data, uint8_t nbits, uint8_t repeat); // *Note instead of sending the REPEAT constant if you want the JVC repeat signal sent, send the original code value and change the repeat argument from 0 to 1. JVC protocol repeats by skipping the header NOT by sending a separate code value like NEC does.
+  void enableIROut(uint8_t khz);
 private:
   void mark(int16_t usec);
   void space(int16_t usec);
