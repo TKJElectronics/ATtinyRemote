@@ -107,11 +107,8 @@ void loop(void) {
 void JVCCommand(uint16_t data)
 {
   irsend.sendJVC(data, 16,0); // hex value, 16 bits, no repeat
-  for(uint8_t i = 0; i < 5; i++)
-  {
-    delayMicroseconds(50); // see http://www.sbprojects.com/knowledge/ir/jvc.php for information
-    irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat
-  }
+  delayMicroseconds(50); // see http://www.sbprojects.com/knowledge/ir/jvc.php for information
+  irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat
 }
 
 boolean MATCH(uint16_t measured, uint16_t desired) // True if the condition are met
@@ -178,7 +175,7 @@ boolean listenForIR(void) {
     // we read one high-low pulse successfully, continue!
     currentpulse++;
 
-    if(currentpulse >= commandLength) // Exit when the full command has been received
+    if(currentpulse == commandLength) // Exit when the full command has been received
       return true;
   }
 }
