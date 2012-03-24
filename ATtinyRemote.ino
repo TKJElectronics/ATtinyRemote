@@ -106,9 +106,17 @@ void loop(void) {
 
 void JVCCommand(uint16_t data)
 {
+  uint8_t nrRepeats;  
+  if(data == JVCVolumeUp || data == JVCVolumeDown) // Only send once if it's a volume up or down command
+    nrRepeats = 1;
+  else
+    nrRepeats = 5;
+    
   irsend.sendJVC(data, 16,0); // hex value, 16 bits, no repeat
-  delayMicroseconds(50); // see http://www.sbprojects.com/knowledge/ir/jvc.php for information
-  irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat
+  for(uint8_t i = 0; i < nrRepeats; i++) {    
+    delayMicroseconds(50); // see http://www.sbprojects.com/knowledge/ir/jvc.php for information
+    irsend.sendJVC(data, 16,1); // hex value, 16 bits, repeat        
+  }
 }
 
 boolean MATCH(uint16_t measured, uint16_t desired) // True if the condition are met
