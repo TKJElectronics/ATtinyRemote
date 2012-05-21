@@ -2,6 +2,8 @@ The code is released under the GNU General Public License.
 
 This is a remote translator based on an ATtiny85. It translates commands from a Panasonic remote to specific JVC commands. This enables me to turn my JVC stereo on and off, mute it and turn the volume up or down, using my Panasonic remote for my TV.
 
+A new version is now available, it can be found in the /ATtinyRemoteVer2 folder.
+
 For more information see my blog post: http://blog.tkjelectronics.dk/2012/03/attinyremote/ or send me an email at kristianl at tkjelectronics dot dk.
 
 The receiving code is based around Adafruit's IR-Commander sketch: https://github.com/adafruit/IR-Commander while the decoding of the Panasonic protocol and sending of the JVC commands are based upon this forked library: https://github.com/zenwheel/Arduino-IRremote. The originally library is by Ken Shirriff: https://github.com/shirriff/Arduino-IRremote

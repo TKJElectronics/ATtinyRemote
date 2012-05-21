@@ -1,0 +1,11 @@
+The code is released under the GNU General Public License.
+
+This is a highly optimized version of the firmware. The code flow is basically the same as the first release.
+
+The major difference is that it now uses a external interrupt for the receiving part. To tell the time I use timer0. It is used in CTC (Clear Timer on Compare Match Mode) every 6ms, as the maximum pulse i approximately 5ms. As the Panasonic protocol is very long (48 bits) is not necessary to check the length of the pulses very precisely, as my other IR remotes protocols' are only maximum 32 bits long. But it wouldn't be that hard to modify the code to work with any IR protocol.
+
+Timer1 is used to send the IR commands. It is used in PWM mode, at a modulation frequency will be 38kHz, but this can easily be modified.
+
+I have also implemented a optional sleep mode, to save power consumption. This will set the microcontroller in power down mode.
+
+For more information see my blog post: http://blog.tkjelectronics.dk/2012/03/attinyremote/ or send me an email at kristianl at tkjelectronics dot dk.
