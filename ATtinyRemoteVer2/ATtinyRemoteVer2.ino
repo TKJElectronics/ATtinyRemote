@@ -153,7 +153,7 @@ void newDelay(uint16_t time) { // I use my own simple delay, as I can't use dela
   int16_t timerCounter = time/6; // The input is in ms and the resolution is 6ms
   TCNT0 = 0; // Reset timer
   compareMatchCounter = 0; // Reset flag
-  while(timerCounter-1 >= compareMatchCounter);
+  while(timerCounter > compareMatchCounter);
 }
 
 void JVCCommand(uint16_t data) { 
