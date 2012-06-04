@@ -99,7 +99,7 @@ void setup() {
 
 void loop() {
   if(finishedReading) {
-    if((uint16_t)(IRData >> 32) == PanasonicAddress) {            
+    if((uint16_t)(IRData >> 32) == PanasonicAddress) {   
       if(deactivated) {
         if((uint32_t)IRData == ATtinyPower) {
           deactivated = false;
@@ -142,7 +142,7 @@ void loop() {
       sleep(); // Put the device into sleep mode - the IR Receiver will trigger a external interrupt and wake the device
 #endif
     } 
-    else {    
+    else {
       IRData = 0; // Reset data
       finishedReading = 0; // Clear flag 
     }
@@ -150,10 +150,9 @@ void loop() {
 }
 
 void newDelay(uint16_t time) { // I use my own simple delay, as I can't use delay() as it uses timer0 - delayMicroseconds() still work, as it uses assembly language, see https://github.com/arduino/Arduino/blob/master/hardware/arduino/cores/arduino/wiring.c
-  int16_t timerCounter = time/6; // The input is in ms and the resolution is 6ms
-  TCNT0 = 0; // Reset timer
-  compareMatchCounter = 0; // Reset flag
-  while(timerCounter > compareMatchCounter);
+  compareMatchCounter = time/6; // Set number of counts - The input is in ms and the resolution is 6ms
+  TCNT0 = 0; // Reset timer 
+  while(compareMatchCounter);
 }
 
 void JVCCommand(uint16_t data) { 
@@ -217,7 +216,7 @@ ISR(INT0_vect) { // External interrupt at INT0
     switch(IRState) {
     case 0:
       if(compareMatch) // First pulse after long pause
-        IRState = 1;         
+        IRState = 1;
       break;
     case 1:
       if(!compareMatch && TCNT0 > headerTime) { // Check if the pulse is not to long and it is longer than the headerTime
@@ -250,23 +249,23 @@ ISR(INT0_vect) { // External interrupt at INT0
 ISR(TIM0_COMPA_vect) { // Timer0/Counter Compare Match A
   //PORTB ^= _BV(LED); // Used to check the timing with my oscilloscope
   compareMatch = 1; // It has been more than 6ms since last pulse were received
-  compareMatchCounter += 1; // Used for newDelay()
+  compareMatchCounter--; // Used for newDelay()
 }
 #ifdef SLEEP
 void sleep() { // The ATtiny85 is woken by a external interrupt on INT0 from the IR REceiver
   //PORTB &= ~(_BV(LED)); // Turn off LED when it goes to sleep
 
-    // The falling edge of INT0 generates an interrupt request. 
+  // The falling edge of INT0 generates an interrupt request. 
   MCUCR &= ~(_BV(ISC00) | _BV(ISC01)); // To wake up from Power-down, only level interrupt for INT0 can be used. 
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode
-  sleep_mode(); // Here the device is put to sleep
-
+  sleep_mode(); // Here the device is put to sleep  
+  
   // Disable level interrupt and set back to falling edge interrupt
   MCUCR = _BV(ISC01); // The falling edge of INT0 generates an interrupt request
   MCUCR &= ~(_BV(ISC00));
-
-  TCNT0 = 0; // Clear timer   
+    
+  TCNT0 = 0; // Clear timer
   compareMatch = 0; // Clear flag
 
   //PORTB |= _BV(LED); // Turn it back on
