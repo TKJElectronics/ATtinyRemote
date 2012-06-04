@@ -40,7 +40,7 @@
 #define PANASONIC_BITS  48 // The Panasonic Protol is 48 bits long
 
 #define COMPAREFREQUENCY (1000/6) // Frequency value equal to a compare match every 6ms - don't remove the parentheses or it won't compile correctly
-#define TIMERVALUE F_CPU/COMPAREFREQUENCY/1024-1 // See the datasheet page 75 - http://www.atmel.com/Images/doc2586.pdf - the equation is for a period, so don't divide by 2
+#define TIMERVALUE (F_CPU/COMPAREFREQUENCY/1024-1) // See the datasheet page 75 - http://www.atmel.com/Images/doc2586.pdf - the equation is for a period, so don't divide by 2
 
 volatile bool compareMatch = 0; // Used to indicate that a compare match has occurred
 volatile uint16_t compareMatchCounter = 0; // Counter for every timer1 compare match
