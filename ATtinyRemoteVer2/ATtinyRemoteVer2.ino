@@ -28,6 +28,9 @@
 #define JVC_ONE_SPACE   1600
 #define JVC_ZERO_SPACE  550
 
+#define MARK  TCCR1 |= _BV(COM1A1); // Enable pin 6 (PB1) PWM output
+#define SPACE TCCR1 &= ~(_BV(COM1A1)); // Disable pin 6 (PB1) PWM output
+
 // The panasonic protocol is 48-bits long, all the commands has the same address (or pre data) and then followed by a 32 bit code
 #define PanasonicAddress      0x4004     // Panasonic address (Pre data)
 #define PanasonicPower        0x100BCBD  // Panasonic Power button
@@ -43,7 +46,7 @@
 #define TIMERVALUE (F_CPU/COMPAREFREQUENCY/1024-1) // See the datasheet page 75 - http://www.atmel.com/Images/doc2586.pdf - the equation is for a period, so don't divide by 2
 
 volatile bool compareMatch = 0; // Used to indicate that a compare match has occurred
-volatile uint16_t compareMatchCounter = 0; // Counter for every timer1 compare match
+volatile uint16_t compareMatchCounter = 0; // Counter for every timer0 compare match
 
 /*
  // pulse parameters in usec
@@ -86,7 +89,7 @@ void setup() {
 
   /* Enable PWM with a frequency of 38kHz on pin 6 (OC1A) */
   TCCR1 = _BV(PWM1A) | _BV(CS12); // Enable PWM and set prescaler to 8     
-  OCR1C = (((F_CPU/8/PWMFREQUENCY/1000))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP
+  OCR1C = (((F_CPU/8/PWMFREQUENCY/1000))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP, see the datasheet page 90
   OCR1A = OCR1C/3; // 33% duty cycle
 
   sei(); // Enables interrupts by setting the global interrupt mask
@@ -103,34 +106,36 @@ void loop() {
       if(deactivated) {
         if((uint32_t)IRData == ATtinyPower) {
           deactivated = false;
-          PORTB &= ~(_BV(LED)); // Turn LED off
-          newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast
-          IRData = 0; // Reset data
-          finishedReading = 0; // Clear flag          
+          PORTB &= ~(_BV(LED)); // Turn LED off          
+          newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast          
         }
+        IRData = 0; // Reset data
+        finishedReading = 0; // Clear flag
       }
       else {
-        switch((uint32_t)IRData) {      
+        switch((uint32_t)IRData) {
         case PanasonicVolumeUp:   
-          JVCCommand(JVCVolumeUp);        
+          JVCCommand(JVCVolumeUp,0);        
           break;
         case PanasonicVolumeDown:    
-          JVCCommand(JVCVolumeDown);  
+          JVCCommand(JVCVolumeDown,0);
           break;
         case PanasonicMute:
-          JVCCommand(JVCMute);
+          JVCCommand(JVCMute,1);
           break;
         case PanasonicPower:
-          JVCCommand(JVCPower);
-          delay(3000); // On Panasonic TVs one have to hold the power button to turn the TV on, this delay keeps the ATtinyRemote from toggling the JVC stereo on and off
+          JVCCommand(JVCPower,2);
+          newDelay(3000); // On Panasonic TVs one have to hold the power button to turn the TV on, this delay keeps the ATtinyRemote from toggling the JVC stereo on and off
+          IRData = 0; // Reset data
+          finishedReading = 0; // Clear flag
           break;
         case PanasonicPower2:
-          JVCCommand(JVCPower);
+          JVCCommand(JVCPower,1);
           break;
         case ATtinyPower: // This will disable the ATtinyRemote until the button is pressed again
           deactivated = true;
-          PORTB |= _BV(LED); // Turn LED on
-          newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast          
+          PORTB |= _BV(LED); // Turn LED on          
+          newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast
           IRData = 0; // Reset data
           finishedReading = 0; // Clear flag
           break;
@@ -155,61 +160,68 @@ void newDelay(uint16_t time) { // I use my own simple delay, as I can't use dela
   while(compareMatchCounter);
 }
 
-void JVCCommand(uint16_t data) { 
-  /* Don't wait until finished sending command before decoding next incomming data */
-  IRData = 0; // Reset data
-  finishedReading = 0; // Clear flag
+void JVCCommand(uint16_t data, uint8_t waitForSend) {
+  if(!waitForSend) {
+    /* Don't wait until finished sending command before decoding next incomming data */
+    IRData = 0; // Reset data
+    finishedReading = 0; // Clear flag
+  }
 
   /* Send the command */
-  uint8_t nrRepeats;    
+  uint16_t dataTemp; // Store data
+  uint8_t nrRepeats; // Store the number of repeats  
   if(data == JVCVolumeUp || data == JVCVolumeDown) // Only send one repeat if it's a volume up or down command
     nrRepeats = 1;
   else
     nrRepeats = 5;
 
-  sendJVC(data,0); // hex value, no repeat
-  for(uint8_t i = 0; i < nrRepeats; i++) {    
-    delayMicroseconds(50);
-    sendJVC(data,1); // hex value, repeat        
-  }
-}
-void sendJVC(uint32_t data, uint8_t repeat) {
-  if (!repeat){
-    mark(JVC_HDR_MARK);
-    space(JVC_HDR_SPACE); 
-  }
-  for (int i = 0; i < 16; i++) {
-    if (data & 0x8000) { // The data is send MSB
-      mark(JVC_BIT_MARK);
-      space(JVC_ONE_SPACE); 
-    } 
-    else {
-      mark(JVC_BIT_MARK);
-      space(JVC_ZERO_SPACE); 
+  /* Send Header */
+  MARK
+  delayMicroseconds(JVC_HDR_MARK);
+  SPACE
+  delayMicroseconds(JVC_HDR_SPACE);
+
+  /* Send body */  
+  for(uint8_t i = 0; i <= nrRepeats; i++) {
+    dataTemp = data; // Store data
+    for (uint8_t i = 0; i < 16; i++) {      
+      MARK
+      delayMicroseconds(JVC_BIT_MARK);
+      SPACE
+      if (dataTemp & 0x8000) // The data is send MSB      
+        delayMicroseconds(JVC_ONE_SPACE); 
+      else    
+        delayMicroseconds(JVC_ZERO_SPACE);
+      dataTemp <<= 1; // Shift data
     }
-    data <<= 1;
+    MARK // Stop Mark
+    delayMicroseconds(JVC_BIT_MARK);
+    SPACE // Turn IR LED off  
+    newDelay(20); // Wait 20 ms before sending again - this is actually not very precise if the flag has been reset, as the interrupt might reset the timer, but it works anyway
   }
-  mark(JVC_BIT_MARK);
-  space(0); // Turn IR LED off    
+  
+  if(waitForSend == 1) {
+    /* Wait until finished sending command before decoding next incomming data */
+    IRData = 0; // Reset data
+    finishedReading = 0; // Clear flag
+  }
+  // waitForSend == 2, then it will not reset the data and set clear flag
 }
-void mark(uint16_t time) {
-  // Sends an IR mark for the specified number of microseconds.
-  // The mark output is modulated at the PWM frequency.
+/* 
+  A mark sends an IR mark for the specified number of microseconds.
+  The mark output is modulated at the PWM frequency.
 
-  // OC1x cleared on compare match. Set whenTCNT1 = $00.
-  // OC1x set on compare match. Cleared when TCNT1 = $00.    
-  TCCR1 |= _BV(COM1A1); // Enable pin 6 (PB1) PWM output
-  delayMicroseconds(time);    
-}
-void space(uint16_t time) {
-  // Sends an IR space for the specified number of microseconds.
-  // A space is no output, so the PWM output is disabled.
+  TCCR1 |= _BV(COM1A1);
+  This will enable the pwm output:  
+  OC1A cleared on compare match (TCNT1 = OCR1A). Set when TCNT1 = 0. 
 
-  // OC1x not connected.
-  // OC1x not connected.
-  TCCR1 &= ~(_BV(COM1A1)); // Disable pin 6 (PB1) PWM output  
-  delayMicroseconds(time);
-}
+  A space sends an IR space for the specified number of microseconds.
+  A space is no output, so the PWM output is disabled.
+   
+  TCCR1 &= ~(_BV(COM1A1));  
+  This wil disable the pwm output:  
+  OC1A not connected.  
+*/
 
 ISR(INT0_vect) { // External interrupt at INT0  
   if(!finishedReading) { // Wait until the data has been read
@@ -237,13 +249,13 @@ ISR(INT0_vect) { // External interrupt at INT0
         currentPulse += 1;          
         if (currentPulse == PANASONIC_BITS) { // All bits have been received
           finishedReading = 1; // Indicate that the reading is finished, this has to be cleared in code
-          IRState = 0;
+          IRState = 0; // Reset IR state for next command
         }                
       }
       break;
     }
-  }
-  TCNT0 = 0; // Clear timer   
+    TCNT0 = 0; // Clear timer, don't clear if the data is been read, as the timer is used by newDelay()
+  }  
   compareMatch = 0; // Clear flag
 }
 ISR(TIM0_COMPA_vect) { // Timer0/Counter Compare Match A
