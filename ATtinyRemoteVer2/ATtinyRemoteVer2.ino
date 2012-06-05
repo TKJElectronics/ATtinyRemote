@@ -30,8 +30,8 @@
 #define JVC_ONE_SPACE   1600
 #define JVC_ZERO_SPACE  550
 
-#define MARK  TCCR1 |= _BV(COM1A1); // Enable pin 6 (PB1) PWM output
-#define SPACE TCCR1 &= ~(_BV(COM1A1)); // Disable pin 6 (PB1) PWM output
+#define MARK  (TCCR1 |= _BV(COM1A1)); // Enable pin 6 (PB1) PWM output
+#define SPACE (TCCR1 &= ~(_BV(COM1A1))); // Disable pin 6 (PB1) PWM output
 
 // The panasonic protocol is 48-bits long, all the commands has the same address (or pre data) and then followed by a 32 bit code
 #define PanasonicAddress      0x4004     // Panasonic address (Pre data)
@@ -89,12 +89,12 @@ void setup() {
   TIMSK = _BV(OCIE0A); //  Timer/Counter0 Output Compare Match A Interrupt Enable   
 
   /* Set up external interrupt on pin 7 */
-  MCUCR = _BV(ISC01); // The falling edge of INT0 generates an interrupt request
+  MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request
   MCUCR &= ~(_BV(ISC00));
   GIMSK = _BV(INT0); // External Interrupt Request 0 Enable
 
   /* Enable PWM with a frequency of 38kHz on pin 6 (OC1A) */
-  TCCR1 = _BV(PWM1A) | _BV(CS12); // Enable PWM and set prescaler to 8     
+  TCCR1 = _BV(PWM1A) | _BV(CS12); // Enable PWM and set prescaler to 8
   OCR1C = (((F_CPU/8/PWMFREQUENCY/1000))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP, see the datasheet page 90
   OCR1A = OCR1C/3; // 33% duty cycle
 
@@ -151,7 +151,7 @@ void loop() {
           break;     
         }
       }       
-#ifdef SLEEP
+#ifdef SLEEP // This can be enabled, but I decided not to, as it will miss the first command sent from the remote
       wdt_disable(); // Disable watchdog timer before going to sleep
       sleep(); // Put the device into sleep mode - the IR Receiver will trigger a external interrupt and wake the device
       wdt_enable(WDTO_4S); // Reenable watchdog timer
@@ -174,7 +174,7 @@ void JVCCommand(uint16_t data, uint8_t waitForSend) {
     finishedReading = 0; // Clear flag
 
   /* Send the command */
-  uint16_t dataTemp; // Store data
+  uint16_t dataTemp; // Used to store data
   uint8_t nrRepeats; // Store the number of repeats  
   if(data == JVCVolumeUp || data == JVCVolumeDown) // Only send one repeat if it's a volume up or down command
     nrRepeats = 1;
@@ -277,17 +277,14 @@ void sleep() { // The ATtiny85 is woken by a external interrupt on INT0 from the
   // The falling edge of INT0 generates an interrupt request. 
   MCUCR &= ~(_BV(ISC00) | _BV(ISC01)); // To wake up from Power-down, only level interrupt for INT0 can be used. 
 
+  TCNT0 = 0; // Clear timer
+  compareMatch = 0; // Clear flag  
+
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode
-  sleep_enable(); // Enable sleep
-  sleep_mode(); // Here the device is put to sleep  
-  sleep_disable(); // Disable sleep
+  sleep_mode(); // Here the device is put to sleep
   
   // Disable level interrupt and set back to falling edge interrupt
-  MCUCR = _BV(ISC01); // The falling edge of INT0 generates an interrupt request
-  MCUCR &= ~(_BV(ISC00));
-    
-  TCNT0 = 0; // Clear timer
-  compareMatch = 0; // Clear flag
+  MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request 
 
   //PORTB |= _BV(LED); // Turn it back on
 }
