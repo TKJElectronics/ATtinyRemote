@@ -10,6 +10,8 @@
 #include <avr/sleep.h> // Sleep mode is used between commands to save power
 #endif
 
+#include <avr/wdt.h> // Watchdog timer
+
 #define LED    PINB0 // pin 5 on ATtiny85
 #define IRLED  PINB1 // pin 6 on ATtiny85
 #define IRRECV PINB2 // pin 7 on ATtiny85
@@ -62,6 +64,7 @@ volatile uint16_t compareMatchCounter = 0; // Counter for every timer0 compare m
 
 uint8_t IRState = 0;
 uint8_t currentPulse = 0;
+uint64_t IRBuffer = 0;
 volatile uint64_t IRData = 0;
 volatile bool finishedReading = 0;
 
@@ -75,6 +78,9 @@ void setup() {
   DDRB |= _BV(IRLED); // Set as output
   PORTB &= ~(_BV(IRLED)); // When not sending PWM, we want it low
   DDRB &= ~(_BV(IRRECV)); // Set as input
+  
+  /* Disable Analog to Digitalconverter to save power */
+  ADCSRA &= ~(_BV(ADEN));
 
   /* Set up timer0 to "Clear Timer on Compare Match (CTC) Mode" at a 6ms interval */
   TCCR0A = _BV(WGM01); // Set "Clear Timer on Compare Match (CTC) Mode" - OCR0A is TOP
@@ -92,15 +98,20 @@ void setup() {
   OCR1C = (((F_CPU/8/PWMFREQUENCY/1000))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP, see the datasheet page 90
   OCR1A = OCR1C/3; // 33% duty cycle
 
-  sei(); // Enables interrupts by setting the global interrupt mask
+  /* Enable watchdog timer at 4 seconds */
+  wdt_enable(WDTO_4S);
+  
+  sei(); // Enables interrupts by setting the global interrupt mask  
 
   /* Indicate startup */
   PORTB |= _BV(LED); // Turn LED on
   newDelay(100);
-  PORTB &= ~(_BV(LED)); // Turn LED off
+  PORTB &= ~(_BV(LED)); // Turn LED off  
 }
 
 void loop() {
+  wdt_reset(); // Reset watchdog timer
+  
   if(finishedReading) {
     if((uint16_t)(IRData >> 32) == PanasonicAddress) {   
       if(deactivated) {
@@ -108,8 +119,7 @@ void loop() {
           deactivated = false;
           PORTB &= ~(_BV(LED)); // Turn LED off          
           newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast          
-        }
-        IRData = 0; // Reset data
+        }        
         finishedReading = 0; // Clear flag
       }
       else {
@@ -126,7 +136,6 @@ void loop() {
         case PanasonicPower:
           JVCCommand(JVCPower,2);
           newDelay(3000); // On Panasonic TVs one have to hold the power button to turn the TV on, this delay keeps the ATtinyRemote from toggling the JVC stereo on and off
-          IRData = 0; // Reset data
           finishedReading = 0; // Clear flag
           break;
         case PanasonicPower2:
@@ -136,7 +145,6 @@ void loop() {
           deactivated = true;
           PORTB |= _BV(LED); // Turn LED on          
           newDelay(250); // delay insures that it's just don't toggle "deactivate" very fast
-          IRData = 0; // Reset data
           finishedReading = 0; // Clear flag
           break;
         default:
@@ -144,13 +152,13 @@ void loop() {
         }
       }       
 #ifdef SLEEP
+      wdt_disable(); // Disable watchdog timer before going to sleep
       sleep(); // Put the device into sleep mode - the IR Receiver will trigger a external interrupt and wake the device
+      wdt_enable(WDTO_4S); // Reenable watchdog timer
 #endif
     } 
-    else {
-      IRData = 0; // Reset data
-      finishedReading = 0; // Clear flag 
-    }
+    else
+      finishedReading = 0; // Clear flag
   }  
 }
 
@@ -161,11 +169,9 @@ void newDelay(uint16_t time) { // I use my own simple delay, as I can't use dela
 }
 
 void JVCCommand(uint16_t data, uint8_t waitForSend) {
-  if(!waitForSend) {
-    /* Don't wait until finished sending command before decoding next incomming data */
-    IRData = 0; // Reset data
+  /* Don't wait until finished sending command before decoding next incomming data */
+  if(!waitForSend)    
     finishedReading = 0; // Clear flag
-  }
 
   /* Send the command */
   uint16_t dataTemp; // Store data
@@ -200,11 +206,10 @@ void JVCCommand(uint16_t data, uint8_t waitForSend) {
     newDelay(20); // Wait 20 ms before sending again - this is actually not very precise if the flag has been reset, as the interrupt might reset the timer, but it works anyway
   }
   
-  if(waitForSend == 1) {
-    /* Wait until finished sending command before decoding next incomming data */
-    IRData = 0; // Reset data
+  /* Wait until finished sending command before decoding next incomming data */
+  if(waitForSend == 1)    
     finishedReading = 0; // Clear flag
-  }
+    
   // waitForSend == 2, then it will not reset the data and set clear flag
 }
 /* 
@@ -232,7 +237,8 @@ ISR(INT0_vect) { // External interrupt at INT0
       break;
     case 1:
       if(!compareMatch && TCNT0 > headerTime) { // Check if the pulse is not to long and it is longer than the headerTime
-        currentPulse = 0;
+        currentPulse = 0; // Reset pulse counter
+        IRBuffer = 0; // Reset buffer
         IRState = 2;
       } 
       else
@@ -243,11 +249,12 @@ ISR(INT0_vect) { // External interrupt at INT0
         IRState = 0;
       else {
         if(TCNT0 < spaceTime) // Check if it's a mark
-          IRData <<= 1;       
+          IRBuffer <<= 1;       
         else // It must be a space
-        IRData = (IRData << 1) | 1;
-        currentPulse += 1;          
+          IRBuffer = (IRBuffer << 1) | 1;
+        currentPulse++;          
         if (currentPulse == PANASONIC_BITS) { // All bits have been received
+          IRData = IRBuffer;
           finishedReading = 1; // Indicate that the reading is finished, this has to be cleared in code
           IRState = 0; // Reset IR state for next command
         }                
@@ -271,7 +278,9 @@ void sleep() { // The ATtiny85 is woken by a external interrupt on INT0 from the
   MCUCR &= ~(_BV(ISC00) | _BV(ISC01)); // To wake up from Power-down, only level interrupt for INT0 can be used. 
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode
+  sleep_enable(); // Enable sleep
   sleep_mode(); // Here the device is put to sleep  
+  sleep_disable(); // Disable sleep
   
   // Disable level interrupt and set back to falling edge interrupt
   MCUCR = _BV(ISC01); // The falling edge of INT0 generates an interrupt request
@@ -283,4 +292,3 @@ void sleep() { // The ATtiny85 is woken by a external interrupt on INT0 from the
   //PORTB |= _BV(LED); // Turn it back on
 }
 #endif
-
