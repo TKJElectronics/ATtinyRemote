@@ -148,6 +148,7 @@ void loop() {
           finishedReading = 0; // Clear flag
           break;
         default:
+          finishedReading = 0; // Clear flag
           break;     
         }
       }       
