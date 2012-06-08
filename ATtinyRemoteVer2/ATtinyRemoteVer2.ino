@@ -16,7 +16,7 @@
 #define IRLED  PINB1 // pin 6 on ATtiny85
 #define IRRECV PINB2 // pin 7 on ATtiny85
 
-#define PWMFREQUENCY  38 // Frequency in kHz
+#define PWMFREQUENCY  38000 // Frequency in Hz
 
 /* The JVC Protocol is only 16-bits */
 #define JVCPower        0xC5E8
@@ -95,7 +95,7 @@ void setup() {
 
   /* Enable PWM with a frequency of 38kHz on pin 6 (OC1A) */
   TCCR1 = _BV(PWM1A) | _BV(CS12); // Enable PWM and set prescaler to 8
-  OCR1C = (((F_CPU/8/PWMFREQUENCY/1000))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP, see the datasheet page 90
+  OCR1C = (((F_CPU/8/PWMFREQUENCY))-1); // Set PWM Frequency to 38kHz, OCR1C is TOP, see the datasheet page 90
   OCR1A = OCR1C/3; // 33% duty cycle
 
   /* Enable watchdog timer at 4 seconds */
@@ -204,7 +204,8 @@ void JVCCommand(uint16_t data, uint8_t waitForSend) {
     MARK // Stop Mark
     delayMicroseconds(JVC_BIT_MARK);
     SPACE // Turn IR LED off  
-    newDelay(20); // Wait 20 ms before sending again - this is actually not very precise if the flag has been reset, as the interrupt might reset the timer, but it works anyway
+    if(i != nrRepeats) // Don't make a delay, if it's the last repeat
+      newDelay(20); // Wait 20 ms before sending again - this is actually not very precise if the flag has been reset, as the interrupt might reset the timer, but it works anyway
   }
   
   /* Wait until finished sending command before decoding next incomming data */
@@ -256,7 +257,7 @@ ISR(INT0_vect) { // External interrupt at INT0
         currentPulse++;          
         if (currentPulse == PANASONIC_BITS) { // All bits have been received
           IRData = IRBuffer;
-          finishedReading = 1; // Indicate that the reading is finished, this has to be cleared in code
+          finishedReading = 1; // Indicate that the reading is finished, this has to be cleared in software
           IRState = 0; // Reset IR state for next command
         }                
       }
@@ -276,13 +277,13 @@ void sleep() { // The ATtiny85 is woken by a external interrupt on INT0 from the
   //PORTB &= ~(_BV(LED)); // Turn off LED when it goes to sleep
 
   // The falling edge of INT0 generates an interrupt request. 
-  MCUCR &= ~(_BV(ISC00) | _BV(ISC01)); // To wake up from Power-down, only level interrupt for INT0 can be used. 
-
-  TCNT0 = 0; // Clear timer
-  compareMatch = 0; // Clear flag  
+  MCUCR &= ~(_BV(ISC00) | _BV(ISC01)); // To wake up from Power-down, only level interrupt for INT0 can be used.    
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Set sleep mode
   sleep_mode(); // Here the device is put to sleep
+  
+  TCNT0 = 0; // Clear timer
+  compareMatch = 0; // Clear flag
   
   // Disable level interrupt and set back to falling edge interrupt
   MCUCR |= _BV(ISC01); // The falling edge of INT0 generates an interrupt request 
