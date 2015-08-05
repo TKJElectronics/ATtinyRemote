@@ -191,7 +191,7 @@ void JVCCommand(uint16_t data, uint8_t waitForSend) {
   /* Send body */  
   for(uint8_t i = 0; i <= nrRepeats; i++) {
     dataTemp = data; // Store data
-    for (uint8_t i = 0; i < 16; i++) {      
+    for (uint8_t j = 0; j < 16; j++) {      
       MARK
       delayMicroseconds(JVC_BIT_MARK);
       SPACE
